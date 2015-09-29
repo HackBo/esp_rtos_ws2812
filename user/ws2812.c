@@ -1,10 +1,12 @@
 #include "esp_common.h"
-#include "ws2812.h"
+//#include "ws2812.h"
 //#include "ets_sys.h"
 #include "gpio.h"
 #include "c_types.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+
+static uint32_t WSGPIO = 0;
 
 
 //#define GPIO_OUTPUT_SET(gpio_no, bit_value) \
@@ -83,44 +85,79 @@
 }
 
 */
-void  SEND_WS_0()
+
+static void  ICACHE_FLASH_ATTR SEND_WS_0()
 {
 	uint8_t time;
-	time = 3; while(time--) WRITE_PERI_REG( PERIPHS_GPIO_BASEADDR + GPIO_ID_PIN(WSGPIO), 1 );
-	time = 8; while(time--) WRITE_PERI_REG( PERIPHS_GPIO_BASEADDR + GPIO_ID_PIN(WSGPIO), 0 );
+	time = 4; while(time--) GPIO_REG_WRITE( GPIO_ID_PIN(WSGPIO), 1 );
+	time = 9; while(time--) GPIO_REG_WRITE( GPIO_ID_PIN(WSGPIO), 0 );
+
 }
 
-void  SEND_WS_1()
+static void ICACHE_FLASH_ATTR SEND_WS_1()
 {
 	uint8_t time; 
-	time = 7; while(time--) WRITE_PERI_REG( PERIPHS_GPIO_BASEADDR + GPIO_ID_PIN(WSGPIO), 1 );
-	time = 5; while(time--) WRITE_PERI_REG( PERIPHS_GPIO_BASEADDR + GPIO_ID_PIN(WSGPIO), 0 );
+        time = 8; while(time--) GPIO_REG_WRITE( GPIO_ID_PIN(WSGPIO), 1 );
+	time = 6; while(time--) GPIO_REG_WRITE( GPIO_ID_PIN(WSGPIO), 0 );
+
 }
 
-void   WS2812OutBuffer( uint8_t * buffer, uint16_t length )
+static void ICACHE_FLASH_ATTR send_ws_0(uint8_t gpio){
+     uint8_t i;
+     i = 4; while (i--) GPIO_REG_WRITE(GPIO_OUT_W1TS_ADDRESS, 1 << gpio);
+     i = 9; while (i--) GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, 1 << gpio);
+}
+static void ICACHE_FLASH_ATTR send_ws_1(uint8_t gpio){
+uint8_t i;
+    i = 8; while (i--) GPIO_REG_WRITE(GPIO_OUT_W1TS_ADDRESS, 1 << gpio);
+    i = 6; while (i--) GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, 1 << gpio);
+}
+
+ ICACHE_FLASH_ATTR void WS2812OutBuffer( uint8_t * buffer, uint16_t length )
+{
+	GPIO_OUTPUT_SET(GPIO_ID_PIN(WSGPIO), 0);
+	vTaskDelay(10);
+        taskENTER_CRITICAL();
+        GPIO_REG_WRITE(8, 1<<WSGPIO );
+	const uint8_t * const end= buffer + length;
+	while( buffer!=end )
+	{
+		uint8_t mask = 0x80;
+	        char c= *buffer;
+		uint8_t byte= c-'0';
+		while (mask) 
+		{
+			if( byte & mask ) send_ws_1(WSGPIO); else send_ws_0(WSGPIO);
+			mask >>= 1;
+                }
+                ++buffer; 
+	}
+        taskEXIT_CRITICAL();
+
+}
+
+
+void  ICACHE_FLASH_ATTR WS2812OutBuffer2( uint8_t * buffer, uint16_t length )
 {
 	uint16_t i;
-	printf("%s %d","inside buffer",length);
 	GPIO_OUTPUT_SET(GPIO_ID_PIN(WSGPIO), 0);
-//vPortEnterCritical();
+	//vTaskDelay(1);
 taskENTER_CRITICAL();
-//	ETS_INTR_LOCK();
 	for( i = 0; i < length; i++ )
 	{
-//	printf("%s","inside buffer2");
 		uint8_t mask = 0x80;
 		uint8_t byte = buffer[i];
+                //char c= *buffer;
+	        //uint8_t byte= c-'0';
+                //buffer++; 
 		while (mask) 
 		{
 			if( byte & mask ) SEND_WS_1(); else SEND_WS_0();
 			mask >>= 1;
         }
 	}
-//	ETS_INTR_UNLOCK();
-//vPortExitCritical();
 taskEXIT_CRITICAL();
 
 }
-
 
 

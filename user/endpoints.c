@@ -5,7 +5,7 @@
 #include "coap.h"
 #include "uart.h"
 #include "wifi.h"
-
+//#include "ws2812.h"
 static char light = '0';
 
 const uint16_t rsplen = 1500;
@@ -28,35 +28,33 @@ static ICACHE_FLASH_ATTR int handle_get_ping(coap_rw_buffer_t *scratch,
                           uint8_t id_hi, uint8_t id_lo)
 {
     int ret = 0;
+    //blazing fast method :-) 
+    WS2812OutBuffer(inpkt->payload.p,inpkt->payload.len ); 
     ret = coap_make_response(scratch, outpkt,
 	        (const uint8_t *)"disco!", strlen("disco!"),
                              id_hi, id_lo, 
                              &inpkt->tok, 
                              COAP_RSPCODE_CONTENT, 
                              COAP_CONTENTTYPE_TEXT_PLAIN);
-    //rt_free(query);
+    
     return ret;
+
 }
 
 
 
 static ICACHE_FLASH_ATTR uint8_t red(int color) {
-
    uint8_t red = (color & 0x00ff0000) >> 16;
-
-   //return (color >> 16) & 0xFF;
    return red;
 }
 
 static ICACHE_FLASH_ATTR uint8_t green(int color) {
     uint8_t green = (color & 0x0000ff00) >> 8; 
 return green;
-//    return (color >> 8) & 0xFF;
 }
 
 static ICACHE_FLASH_ATTR uint8_t blue(int color) {
 uint8_t blue = (color & 0x000000ff);
-//  return color & 0xFF;
  return blue;
 }
 static ICACHE_FLASH_ATTR int handle_get_cen(coap_rw_buffer_t *scratch, 
@@ -64,28 +62,26 @@ static ICACHE_FLASH_ATTR int handle_get_cen(coap_rw_buffer_t *scratch,
                           coap_packet_t *outpkt, 
                           uint8_t id_hi, uint8_t id_lo)
 {
+// slow ineficient method
     int ret = 0;
-    uint32_t frame = 0;
-    int r=0;
-    int g=0;
-    int b=0;
     char *pay=malloc(inpkt->payload.len);
     memcpy(pay, inpkt->payload.p,inpkt->payload.len);
     uint32_t color=atoi(pay);
-    r=red(color);
-    g=green(color);
-    b=blue(color);
-       
-    uint8_t lights=8;
-    uint8_t buffer[lights*3];
-    int i;
-    //ws2812 likes GRB order :-o
-    for( i = 0; i < lights; i++ ){
-        buffer[0+i*3] = g;
-	buffer[1+i*3] = r;
-	buffer[2+i*3] = b;
+    uint8_t r = (color & 0x00ff0000) >> 16;
+    uint8_t g = (color & 0x0000ff00) >> 8; 
+    uint8_t b = (color & 0x000000ff);
+    uint8_t buffer[17*3];
+    uint8_t i=0;
+    uint8_t jump;	
+    while( i < 17){
+	jump=i*3;
+        buffer[0+jump] = g;
+	buffer[1+jump] = r;
+	buffer[2+jump] = b;
+	i++;
     }
-    WS2812OutBuffer(buffer, lights*3); 
+    i=0;
+    WS2812OutBuffer2(buffer,17*3 ); 
     ret = coap_make_response(scratch, outpkt,
 			    (const uint8_t*) "leds", strlen("leds"),
                              id_hi, id_lo, 

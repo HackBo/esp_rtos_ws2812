@@ -10,7 +10,8 @@
 
 //You will have to 	os_intr_lock();  	os_intr_unlock();
 
-void WS2812OutBuffer( uint8_t * buffer, uint16_t length );
 
+//static ICACHE_FLASH_ATTR void  WS2812OutBuffer( uint8_t * buffer, uint16_t length );
+//void WS2812OutBuffer2( uint8_t * buffer, uint16_t length );
 #endif
 
