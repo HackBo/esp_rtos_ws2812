@@ -12,11 +12,23 @@
 
 
 
-#define WIFI_APSSID	"TTYCAST"
+#define WIFI_APSSID	"CUBECAST"
 #define WIFI_APPASSWORD	"12345678"
 #define PLATFORM_DEBUG	true
 
 static char macaddr[6];
+/*
+#define TS_KEY_LEN 16
+#define OW_ADDR_LEN 8
+#define MAX_FIELDS 8
+typedef struct {
+	char thingspeak_key[TS_KEY_LEN+1];
+	char talkback_key[TS_KEY_LEN+1];
+	uint8_t fields[MAX_FIELDS][OW_ADDR_LEN];
+	uint32_t valid;
+} user_config_t;
+
+static user_config_t user_config;
 
 void configure(char * ssid, char * pwd)
 {
@@ -59,7 +71,6 @@ int ch;
 	}
 	
 }
-/*
 static ICACHE_FLASH_ATTR int
 save_user_config(user_config_t *config)
 {
@@ -85,6 +96,37 @@ read_user_config(user_config_t *config)
 		return -1;
 	}
 	return 0;
+}
+
+
+ * field is 1 to 8
+ 
+static ICACHE_FLASH_ATTR void
+map_field(uint8_t field)
+{
+	char buf[2*OW_ADDR_LEN+1];
+	int i;
+	printf("Enter address for field %d:", field);
+	uart_gets(buf, 17);
+	if (strlen(buf) == 0)
+	{
+		for (i=0;i<OW_ADDR_LEN;i++)
+		{
+			user_config.fields[field-1][i] = 0;
+		}
+	}
+	else if (strlen(buf) != 2*OW_ADDR_LEN)
+	{
+		printf("Invalid address\r\n");
+	}
+	else
+	{
+		for (i=OW_ADDR_LEN-1;i>=0;i--)
+		{
+			user_config.fields[field-1][i] = strtol(&buf[i*2], NULL, 16);
+			buf[i*2] = '\0';
+		}
+	}
 }
 */
 void wifi_event_cb(System_Event_t *evt) {

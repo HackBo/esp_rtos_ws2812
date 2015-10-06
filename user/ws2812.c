@@ -116,46 +116,67 @@ uint8_t i;
  ICACHE_FLASH_ATTR void WS2812OutBuffer( uint8_t * buffer, uint16_t length )
 {
 	GPIO_OUTPUT_SET(GPIO_ID_PIN(WSGPIO), 0);
-	vTaskDelay(10);
+	//vTaskDelay(1);
         taskENTER_CRITICAL();
-        GPIO_REG_WRITE(8, 1<<WSGPIO );
+        //GPIO_REG_WRITE(8, 1<<WSGPIO );
 	const uint8_t * const end= buffer + length;
+	//printf("len %d\n",length);
 	while( buffer!=end )
 	{
 		uint8_t mask = 0x80;
-	        char c= *buffer;
-		uint8_t byte= c-'0';
-		while (mask) 
-		{
+		uint8_t r1 = *buffer;
+		buffer++;
+         	uint8_t r2 = *buffer;
+                buffer++;
+		if(r1<=57)r1-=48;
+		else r1-=55;
+        	if(r2<=57)r2-=48;
+		else r2-=55;
+		uint8_t byte= (r1<<4)+r2;
+		while (mask) {
 			if( byte & mask ) send_ws_1(WSGPIO); else send_ws_0(WSGPIO);
 			mask >>= 1;
                 }
-                ++buffer; 
 	}
+	//free(buffer);
+	//printf("\n");
         taskEXIT_CRITICAL();
 
 }
 
-
+static const long hextable[] = {
+   [0 ... 255] = -1, // bit aligned access into this table is considerably
+   ['0'] = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, // faster for most modern processors,
+   ['A'] = 10, 11, 12, 13, 14, 15,       // for the space conscious, reduce to
+   ['a'] = 10, 11, 12, 13, 14, 15        // signed char.
+};
 void  ICACHE_FLASH_ATTR WS2812OutBuffer2( uint8_t * buffer, uint16_t length )
 {
 	uint16_t i;
 	GPIO_OUTPUT_SET(GPIO_ID_PIN(WSGPIO), 0);
-	//vTaskDelay(1);
+//	vTaskDelay(10);
 taskENTER_CRITICAL();
-	for( i = 0; i < length; i++ )
-	{
-		uint8_t mask = 0x80;
-		uint8_t byte = buffer[i];
-                //char c= *buffer;
-	        //uint8_t byte= c-'0';
-                //buffer++; 
-		while (mask) 
-		{
-			if( byte & mask ) SEND_WS_1(); else SEND_WS_0();
-			mask >>= 1;
+	
+
+  uint8_t rlen=length>>1;
+  while ( i < rlen) {
+        uint8_t ith=i<<1;
+	uint8_t r1 = buffer[ith];
+        uint8_t r2 = buffer[ith+1];
+	if(r1<=57)r1-=48;
+	else r1-=55;
+        if(r2<=57)r2-=48;
+	else r2-=55;
+	uint8_t byte= (r1<<4)+r2;
+	//printf("-%d-", byte);
+	uint8_t mask = 0x80;
+        while (mask) {
+		if( byte & mask ) send_ws_1(WSGPIO); else send_ws_0(WSGPIO);
+		mask >>= 1;
         }
-	}
+   i++;
+  }
+  //printf("\n");
 taskEXIT_CRITICAL();
 
 }
