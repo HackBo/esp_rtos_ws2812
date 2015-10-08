@@ -1,43 +1,58 @@
-.output/eagle/debug/obj/coap_server.o .output/eagle/debug/obj/coap_server.d : coap_server.c ../../include/espressif/esp_common.h \
- ../../include/espressif/c_types.h ../../include/espressif/esp_libc.h \
- ../../include/espressif/esp_misc.h ../../include/lwip/lwip/ip_addr.h \
- ../../include/lwip/lwip/opt.h ../../include/lwip/lwipopts.h \
- ../../include/lwip/lwip/debug.h ../../include/lwip/lwip/arch.h \
- ../../include/lwip/arch/cc.h ../../include/espressif/c_types.h \
- ../../include/lwip/lwip/def.h ../../include/lwip/ipv4/lwip/ip4_addr.h \
- ../../include/lwip/ipv6/lwip/ip6_addr.h \
- ../../include/espressif/esp_wifi.h ../../include/espressif/esp_softap.h \
- ../../include/espressif/queue.h ../../include/espressif/esp_sta.h \
- ../../include/espressif/esp_system.h ../../include/espressif/esp_timer.h \
- ../../include/espressif/esp8266/esp8266.h \
- ../../include/espressif/esp8266/ets_sys.h \
- ../../include/espressif/esp8266/eagle_soc.h \
- ../../include/espressif/esp8266/gpio_register.h \
- ../../include/espressif/esp8266/pin_mux_register.h \
- ../../include/espressif/esp8266/spi_register.h \
- ../../include/espressif/esp8266/timer_register.h \
- ../../include/espressif/esp8266/uart_register.h \
- ../../include/espressif/smartconfig.h \
- ../../include/espressif/spi_flash.h ../../include/espressif/pwm.h \
- ../../include/freertos/FreeRTOS.h \
- /home/tucanae47/esp-open-sdk/xtensa-lx106-elf/lib/gcc/xtensa-lx106-elf/4.8.2/include/stddef.h \
- ../../include/freertos/projdefs.h \
- ../../include/freertos/FreeRTOSConfig.h \
- ../../include/freertos/portable.h ../../include/freertos/portmacro.h \
- ../../extra_include/xtensa/xtruntime.h \
- ../../extra_include/xtensa/config/core.h \
- ../../extra_include/xtensa/hal.h \
- ../../extra_include/xtensa/config/core-isa.h \
- ../../extra_include/xtensa/config/core-matmap.h \
- ../../extra_include/xtensa/config/tie.h \
- ../../extra_include/xtensa/config/specreg.h \
- ../../extra_include/xtensa/corebits.h \
- ../../include/freertos/xtensa_rtos.h \
- ../../extra_include/xtensa/config/system.h \
- ../../extra_include/xtensa/simcall.h \
- ../../include/freertos/xtensa_context.h \
- ../../include/freertos/xtensa_timer.h \
- ../../include/freertos/mpu_wrappers.h ../../include/freertos/task.h \
- ../../include/freertos/list.h ../../include/lwip/lwip/sockets.h \
- ../../include/lwip/ipv4/lwip/inet.h ../../include/lwip/ipv6/lwip/inet6.h \
+.output/eagle/debug/obj/coap_server.o .output/eagle/debug/obj/coap_server.d : coap_server.c \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/espressif/esp_common.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/espressif/c_types.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/espressif/esp_libc.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/espressif/esp_misc.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/lwip/lwip/ip_addr.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/lwip/lwip/opt.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/lwip/lwipopts.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/lwip/lwip/debug.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/lwip/lwip/arch.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/lwip/arch/cc.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/espressif/c_types.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/lwip/lwip/def.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/lwip/ipv4/lwip/ip4_addr.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/lwip/ipv6/lwip/ip6_addr.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/espressif/esp_wifi.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/espressif/esp_softap.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/espressif/queue.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/espressif/esp_sta.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/espressif/esp_system.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/espressif/esp_timer.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/espressif/esp8266/esp8266.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/espressif/esp8266/ets_sys.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/espressif/esp8266/eagle_soc.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/espressif/esp8266/gpio_register.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/espressif/esp8266/pin_mux_register.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/espressif/esp8266/spi_register.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/espressif/esp8266/timer_register.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/espressif/esp8266/uart_register.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/espressif/smartconfig.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/espressif/spi_flash.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/espressif/pwm.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/freertos/FreeRTOS.h \
+ /home/afc/devel/ESP/esp-open-sdk/xtensa-lx106-elf/lib/gcc/xtensa-lx106-elf/4.8.2/include/stddef.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/freertos/projdefs.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/freertos/FreeRTOSConfig.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/freertos/portable.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/freertos/portmacro.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//extra_include/xtensa/xtruntime.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//extra_include/xtensa/config/core.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//extra_include/xtensa/hal.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//extra_include/xtensa/config/core-isa.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//extra_include/xtensa/config/core-matmap.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//extra_include/xtensa/config/tie.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//extra_include/xtensa/config/specreg.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//extra_include/xtensa/corebits.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/freertos/xtensa_rtos.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//extra_include/xtensa/config/system.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//extra_include/xtensa/simcall.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/freertos/xtensa_context.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/freertos/xtensa_timer.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/freertos/mpu_wrappers.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/freertos/task.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/freertos/list.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/lwip/lwip/sockets.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/lwip/ipv4/lwip/inet.h \
+ /home/afc/devel/ESP/esp_iot_rtos_sdk//include/lwip/ipv6/lwip/inet6.h \
  ../include/coap_server.h ../include/coap.h
