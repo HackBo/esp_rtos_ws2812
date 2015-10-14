@@ -1,22 +1,30 @@
 const coap  = require('coap');
 
-req   = coap.request('coap://192.168.50.1/rgbcolor')
-leds=new Buffer(60*3);
+nleds=60
+leds=new Buffer(nleds*3);
 
-leds.fill(0);
+j=0;
+setInterval(function() {
+  leds.fill(0);
+  req   = coap.request('coap://192.168.50.1/rgbcolor')
 
-for(var i=0;i<60;i++)
-{
-	leds[i*3]=255;
-	leds[i*3+1]=i;
-	leds[i*3+2]=i*2;  
-}
+  j=(j+1)%nleds;
+  for(var i=0;i<nleds;i++)
+  {
+    leds[i*3]=0;
+    leds[i*3+1]=0;
+    leds[i*3+2]=0;  
+    if (i==j)
+      leds[i*3+2]=55;  
+  }
+  req.write(leds.toString('hex'));
 
-req.write(leds.toString('hex'));
+  req.on('response', function(res) {
+      res.pipe(process.stdout)
+  })
 
-req.on('response', function(res) {
-	res.pipe(process.stdout)
-})
+  req.end()
+},  10);
 
-req.end()
+
 

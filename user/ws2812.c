@@ -1,6 +1,4 @@
 #include "esp_common.h"
-//#include "ws2812.h"
-//#include "ets_sys.h"
 #include "rgb.h"
 #include "gpio.h"
 #include "c_types.h"
@@ -9,177 +7,115 @@
 
 static uint32_t WSGPIO = 0;
 
-//#define GPIO_OUTPUT_SET(gpio_no, bit_value) \
-	gpio_output_set(bit_value<<gpio_no, ((~bit_value)&0x01)<<gpio_no, 1<<gpio_no,0)
-
-// I just used a scope to figure out the right time periods.
-/*unsigned long HSVtoHEX( float hue, float sat, float value )
-{
-
-        float pr = 0;
-        float pg = 0;
-        float pb = 0;
-
-        short ora = 0;
-        short og = 0;
-        short ob = 0;
-
-        float ro = fmod( hue * 6, 6. );
-
-        float avg = 0;
-
-        ro = fmod( ro + 6 + 1, 6 ); //Hue was 60* off...
-
-        if( ro < 1 ) //yellow->red
-        {
-                pr = 1;
-                pg = 1. - ro;
-        } else if( ro < 2 )
-        {
-                pr = 1;
-                pb = ro - 1.;
-        } else if( ro < 3 )
-        {
-                pr = 3. - ro;
-                pb = 1;
-        } else if( ro < 4 )
-        {
-                pb = 1;
-                pg = ro - 3;
-        } else if( ro < 5 )
-        {
-                pb = 5 - ro;
-                pg = 1;
-        } else
-        {
-                pg = 1;
-                pr = ro - 5;
-        }
-
-        //Actually, above math is backwards, oops!
-        pr *= value;
-        pg *= value;
-        pb *= value;
-
-        avg += pr;
-        avg += pg;
-        avg += pb;
-
-        pr = pr * sat + avg * (1.-sat);
-        pg = pg * sat + avg * (1.-sat);
-        pb = pb * sat + avg * (1.-sat);
-
-        ora = pr * 255;
-        og = pb * 255;
-        ob = pg * 255;
-
-        if( ora < 0 ) ora = 0;
-        if( ora > 255 ) ora = 255;
-        if( og < 0 ) og = 0;
-        if( og > 255 ) og = 255;
-        if( ob < 0 ) ob = 0;
-        if( ob > 255 ) ob = 255;
-
-        return (ob<<16) | (og<<8) | ora;
+static uint32_t _getCycleCount(void) __attribute__((always_inline));
+static inline uint32_t _getCycleCount(void) {
+  uint32_t ccount;
+  __asm__ __volatile__("rsr %0,ccount" : "=a"(ccount));
+  return ccount;
 }
 
-*/
+#define F_CPU CPU_CLK_FREQ
+#define CYCLES_800_T0H (F_CPU / 2500000)  // 0.4us
+#define CYCLES_800_T1H (F_CPU / 1250000)  // 0.8us
+#define CYCLES_800 (F_CPU / 800000)       // 1.25us per bit
 
-static void ICACHE_FLASH_ATTR SEND_WS_0() {
-  uint8_t time;
-  time = 4;
-  while (time--) GPIO_REG_WRITE(GPIO_ID_PIN(WSGPIO), 1);
-  time = 9;
-  while (time--) GPIO_REG_WRITE(GPIO_ID_PIN(WSGPIO), 0);
-}
+void ICACHE_FLASH_ATTR
+send_pixels_800(uint8_t *pixels, uint32_t numBytes, uint8_t pin) {
+  const uint32_t pinRegister = 1 << pin;
+  uint8_t mask;
+  uint8_t subpix;
+  uint32_t cyclesStart;
+  uint8_t *end = pixels + numBytes;
 
-static void ICACHE_FLASH_ATTR SEND_WS_1() {
-  uint8_t time;
-  time = 8;
-  while (time--) GPIO_REG_WRITE(GPIO_ID_PIN(WSGPIO), 1);
-  time = 6;
-  while (time--) GPIO_REG_WRITE(GPIO_ID_PIN(WSGPIO), 0);
-}
+  // trigger emediately
+  cyclesStart = _getCycleCount() - CYCLES_800;
+  do {
+    subpix = *pixels++;
+    for (mask = 0x80; mask != 0; mask >>= 1) {
+      // do the checks here while we are waiting on time to pass
+      uint32_t cyclesBit = ((subpix & mask)) ? CYCLES_800_T1H : CYCLES_800_T0H;
+      uint32_t cyclesNext = cyclesStart;
+      uint32_t delta;
 
-static void ICACHE_FLASH_ATTR send_ws_0(uint8_t gpio) {
-  uint8_t i;
-  i = 4;
-  while (i--) GPIO_REG_WRITE(GPIO_OUT_W1TS_ADDRESS, 1 << gpio);
-  i = 9;
-  while (i--) GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, 1 << gpio);
-}
-static void ICACHE_FLASH_ATTR send_ws_1(uint8_t gpio) {
-  uint8_t i;
-  i = 8;
-  while (i--) GPIO_REG_WRITE(GPIO_OUT_W1TS_ADDRESS, 1 << gpio);
-  i = 6;
-  while (i--) GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, 1 << gpio);
-}
+      // after we have done as much work as needed for this next bit
+      // now wait for the HIGH
+      do {
+        // cache and use this count so we don't incur another
+        // instruction before we turn the bit high
+        cyclesStart = _getCycleCount();
+      } while ((cyclesStart - cyclesNext) < CYCLES_800);
 
-ICACHE_FLASH_ATTR void WS2812OutByte(uint8_t byte) {
-  uint8_t mask = 0x80;
-  while (mask) {
-    if (byte & mask)
-      send_ws_1(WSGPIO);
-    else
-      send_ws_0(WSGPIO);
-    mask >>= 1;
-  }
-}
+      // set high
+      GPIO_REG_WRITE(GPIO_OUT_W1TS_ADDRESS, pinRegister);
 
-ICACHE_FLASH_ATTR void WS2812OutBuffer(rgb* buffer, uint16_t length) {
-  int l;
-  GPIO_OUTPUT_SET(GPIO_ID_PIN(WSGPIO), 0);
-  // vTaskDelay(1);
-  taskENTER_CRITICAL();
-  // GPIO_REG_WRITE(8, 1<<WSGPIO );
+      // wait for the LOW
+      do {
+        cyclesNext = _getCycleCount();
+      } while ((cyclesNext - cyclesStart) < cyclesBit);
 
-  for (l = 0; l < length; l++) {
-    WS2812OutByte(buffer[l].g);
-    WS2812OutByte(buffer[l].r);
-    WS2812OutByte(buffer[l].b);
-  }
-  taskEXIT_CRITICAL();
-}
-
-static const long hextable[] = {
-        [0 ... 255] = -1,  // bit aligned access into this table is considerably
-        ['0'] = 0, 1, 2, 3, 4, 5, 6, 7, 8,
-        9,                               // faster for most modern processors,
-        ['A'] = 10, 11, 12, 13, 14, 15,  // for the space conscious, reduce to
-        ['a'] = 10, 11, 12, 13, 14, 15   // signed char.
-};
-void ICACHE_FLASH_ATTR WS2812OutBuffer2(uint8_t* buffer, uint16_t length) {
-  uint16_t i;
-  GPIO_OUTPUT_SET(GPIO_ID_PIN(WSGPIO), 0);
-  //	vTaskDelay(10);
-  taskENTER_CRITICAL();
-
-  uint8_t rlen = length >> 1;
-  while (i < rlen) {
-    uint8_t ith = i << 1;
-    uint8_t r1 = buffer[ith];
-    uint8_t r2 = buffer[ith + 1];
-    if (r1 <= 57)
-      r1 -= 48;
-    else
-      r1 -= 55;
-    if (r2 <= 57)
-      r2 -= 48;
-    else
-      r2 -= 55;
-    uint8_t byte = (r1 << 4) + r2;
-    // printf("-%d-", byte);
-    uint8_t mask = 0x80;
-    while (mask) {
-      if (byte & mask)
-        send_ws_1(WSGPIO);
-      else
-        send_ws_0(WSGPIO);
-      mask >>= 1;
+      // set low
+      GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, pinRegister);
     }
-    i++;
-  }
-  // printf("\n");
+  } while (pixels < end);
+
+  // while accurate, this isn't needed due to the delays at the
+  // top of Show() to enforce between update timing
+  // while ((_getCycleCount() - cyclesStart) < CYCLES_800);
+}
+
+ICACHE_FLASH_ATTR void WS2812OutBuffer(rgb *buffer, uint16_t length) {
+  taskENTER_CRITICAL();
+
+  vTaskDelay(1);
+
+  send_pixels_800((uint8_t *)buffer, 3 * length, WSGPIO);
+
   taskEXIT_CRITICAL();
+}
+
+#define MAX_LEDS 144
+static uint8_t buffer[MAX_LEDS * sizeof(rgb)];
+static rgb *rgb_buffer = (rgb *)buffer;
+
+void ledControllerTask(void *pvParameters) {
+  int i;
+  int nleds = 60;
+
+  memset(rgb_buffer, 0, MAX_LEDS * sizeof(rgb));
+  for (i = 0; i < MAX_LEDS; i++) rgb_buffer[i].g = i;
+
+  GPIO_OUTPUT_SET(GPIO_ID_PIN(WSGPIO), 0);
+
+  GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, 1 << WSGPIO);
+
+  while (true) 
+  {
+    WS2812OutBuffer(rgb_buffer, nleds);    
+  }
+}
+
+int leds_write_hex(uint8_t *bytes, int len) {
+  uint8_t i;
+  static unsigned char hex[3];
+  int nleds = len / 6;
+
+  hex[2] = '\0';
+  memset(rgb_buffer, 0, MAX_LEDS * sizeof(rgb));
+
+  for (i = 0; i < nleds; i++) {
+    uint8_t *p = (uint8_t *)(bytes + i * 6);
+
+    memcpy(hex, p, 2);
+    rgb_buffer[i].r = strtol(hex, NULL, 16);
+
+    memcpy(hex, p + 2, 2);
+    rgb_buffer[i].g = strtol(hex, NULL, 16);
+
+    memcpy(hex, p + 4, 2);
+    rgb_buffer[i].b = strtol(hex, NULL, 16);
+  }
+}
+
+void leds_init(void) {
+  xTaskCreate(ledControllerTask, "ledControllerTask", 512, NULL, 2, NULL);
 }
