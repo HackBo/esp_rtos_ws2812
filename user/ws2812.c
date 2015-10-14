@@ -64,13 +64,15 @@ send_pixels_800(uint8_t *pixels, uint32_t numBytes, uint8_t pin) {
 }
 
 ICACHE_FLASH_ATTR void WS2812OutBuffer(rgb *buffer, uint16_t length) {
-  taskENTER_CRITICAL();
-
-  vTaskDelay(1);
+taskDISABLE_INTERRUPTS();
+//vTaskSuspendAll();
+//  taskENTER_CRITICAL();
 
   send_pixels_800((uint8_t *)buffer, 3 * length, WSGPIO);
 
-  taskEXIT_CRITICAL();
+//xTaskResumeAll();
+taskENABLE_INTERRUPTS();
+//  taskEXIT_CRITICAL();
 }
 
 #define MAX_LEDS 144
@@ -78,8 +80,8 @@ static uint8_t buffer[MAX_LEDS * sizeof(rgb)];
 static rgb *rgb_buffer = (rgb *)buffer;
 
 void ledControllerTask(void *pvParameters) {
-  int i;
-  int nleds = 60;
+  int i,j;
+  int nleds = 35;
 
   memset(rgb_buffer, 0, MAX_LEDS * sizeof(rgb));
   for (i = 0; i < MAX_LEDS; i++) rgb_buffer[i].g = i;
@@ -88,9 +90,20 @@ void ledControllerTask(void *pvParameters) {
 
   GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, 1 << WSGPIO);
 
+  j=0;
   while (true) 
   {
+    memset(rgb_buffer, 0, MAX_LEDS * sizeof(rgb));
+    for (i = 0; i < MAX_LEDS; i++) rgb_buffer[i].g = i;
+
+    rgb_buffer[j].r = 255;
+
+    rgb_buffer[nleds-1-(j+(nleds*1/3))%nleds].b = 255;
+
+    j=(j+1)%nleds;
+
     WS2812OutBuffer(rgb_buffer, nleds);    
+    vTaskDelay(2);
   }
 }
 
