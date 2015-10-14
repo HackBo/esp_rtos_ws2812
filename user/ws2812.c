@@ -103,7 +103,7 @@ void ledControllerTask(void *pvParameters) {
     j=(j+1)%nleds;
 
     WS2812OutBuffer(rgb_buffer, nleds);    
-    vTaskDelay(2);
+    vTaskDelay(1);
   }
 }
 
