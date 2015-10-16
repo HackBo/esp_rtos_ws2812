@@ -19,13 +19,15 @@ static inline uint32_t _getCycleCount(void) {
 #define CYCLES_800_T1H (F_CPU / 1250000)  // 0.8us
 #define CYCLES_800 (F_CPU / 800000)       // 1.25us per bit
 
-void ICACHE_FLASH_ATTR
+static void ICACHE_FLASH_ATTR
 send_pixels_800(uint8_t *pixels, uint32_t numBytes, uint8_t pin) {
   const uint32_t pinRegister = 1 << pin;
   uint8_t mask;
   uint8_t subpix;
   uint32_t cyclesStart;
   uint8_t *end = pixels + numBytes;
+
+  ets_intr_lock();
 
   // trigger emediately
   cyclesStart = _getCycleCount() - CYCLES_800;
@@ -61,18 +63,21 @@ send_pixels_800(uint8_t *pixels, uint32_t numBytes, uint8_t pin) {
   // while accurate, this isn't needed due to the delays at the
   // top of Show() to enforce between update timing
   // while ((_getCycleCount() - cyclesStart) < CYCLES_800);
+  ets_intr_unlock();
 }
 
 ICACHE_FLASH_ATTR void WS2812OutBuffer(rgb *buffer, uint16_t length) {
-taskDISABLE_INTERRUPTS();
-//vTaskSuspendAll();
-//  taskENTER_CRITICAL();
+  taskENTER_CRITICAL();
+
+  vTaskSuspendAll();
+
+  vTaskDelay(1);
 
   send_pixels_800((uint8_t *)buffer, 3 * length, WSGPIO);
 
-//xTaskResumeAll();
-taskENABLE_INTERRUPTS();
-//  taskEXIT_CRITICAL();
+  xTaskResumeAll();
+
+  taskEXIT_CRITICAL();
 }
 
 #define MAX_LEDS 144
@@ -80,19 +85,18 @@ static uint8_t buffer[MAX_LEDS * sizeof(rgb)];
 static rgb *rgb_buffer = (rgb *)buffer;
 
 void ledControllerTask(void *pvParameters) {
-  int i,j;
+  int i, j;
   int nleds = 35;
 
   memset(rgb_buffer, 0, MAX_LEDS * sizeof(rgb));
-  for (i = 0; i < MAX_LEDS; i++) rgb_buffer[i].g = i;
 
   GPIO_OUTPUT_SET(GPIO_ID_PIN(WSGPIO), 0);
 
   GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, 1 << WSGPIO);
 
-  j=0;
-  while (true) 
-  {
+  j = 0;
+  while (true) {
+#if 0
     memset(rgb_buffer, 0, MAX_LEDS * sizeof(rgb));
     for (i = 0; i < MAX_LEDS; i++) rgb_buffer[i].g = i;
 
@@ -101,9 +105,8 @@ void ledControllerTask(void *pvParameters) {
     rgb_buffer[nleds-1-(j+(nleds*1/3))%nleds].b = 255;
 
     j=(j+1)%nleds;
-
-    WS2812OutBuffer(rgb_buffer, nleds);    
-    vTaskDelay(1);
+#endif
+    WS2812OutBuffer(rgb_buffer, nleds);
   }
 }
 
@@ -130,5 +133,5 @@ int leds_write_hex(uint8_t *bytes, int len) {
 }
 
 void leds_init(void) {
-  xTaskCreate(ledControllerTask, "ledControllerTask", 512, NULL, 2, NULL);
+  xTaskCreate(ledControllerTask, "ledControllerTask", 512, NULL, 1000, NULL);
 }

@@ -109,7 +109,4 @@ void wifi_softap(void *pvParameters) {
   wifi_softap_dhcps_start();
 }
 
-void wifi_init(void) {
-  wifi_softap(NULL);
-  // xTaskCreate(wifi_softap, "ap", 512, NULL, tskIDLE_PRIORITY+2, NULL);
-}
+void wifi_init(void) { wifi_softap(NULL); }
