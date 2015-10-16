@@ -25,7 +25,7 @@ static inline uint32_t _getCycleCount(void) {
 static int nleds = MAX_LEDS;
 static uint8_t buffer_1[MAX_LEDS * sizeof(rgb)];
 static uint8_t buffer_2[MAX_LEDS * sizeof(rgb)];
-static bool tainted = false;
+static bool tainted;
 
 static rgb *rgb_buffer = (rgb *)buffer_1;
 
@@ -109,11 +109,13 @@ void ledControllerTask(void *pvParameters) {
   int i;
 
   memset(rgb_buffer, 0, MAX_LEDS * sizeof(rgb));
-  // for (i = 0; i < MAX_LEDS; i++) rgb_buffer[i].b = rgb_buffer[i].g = i;
+  //for (i = 0; i < MAX_LEDS; i++) rgb_buffer[i].b = rgb_buffer[i].g = i;
 
   GPIO_OUTPUT_SET(GPIO_ID_PIN(WSGPIO), 0);
 
   GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, 1 << WSGPIO);
+
+  tainted = true;
 
   while (true) {
     if (tainted) tainted = !WS2812OutBuffer(rgb_buffer, nleds);
@@ -160,25 +162,23 @@ int leds_set_shift(int shift) {
   shift = shift > 0 ? shift % nleds : -((-shift) % nleds);
 
   /*
-  static uint8_t buffer[MAX_LEDS * sizeof(rgb)];
-  static rgb *rgb_buffer = (rgb *)buffer;
-
   0000123000  1
   0000012300 -2
   0001230000 -3
   1230000000 -2
-  3000000012
+  3000000012  4
+  0012300000
   */
-  uint8_t *org = (uint8_t *)rgb_buffer;
-  uint8_t *dest = (uint8_t *)second_buffer();
+  rgb *org = rgb_buffer;
+  rgb *dest = second_buffer();
 
   if (shift > 0) {
-    memcpy(dest, &org[nleds - shift - 1], shift);
-    memcpy(&dest[shift], org, nleds - shift);
+    memcpy(dest, &org[nleds - shift - 1], shift * sizeof(rgb));
+    memcpy(&dest[shift], org, (nleds - shift) * sizeof(rgb));
   } else {
     int offset = -shift;
-    memcpy(dest, &org[offset], nleds - offset);
-    memcpy(&dest[nleds - offset - 1], org, offset);
+    memcpy(dest, &org[offset], (nleds - offset) * sizeof(rgb));
+    memcpy(&dest[nleds - offset - 1], org, offset * sizeof(rgb));
   }
 
   swap_buffer();

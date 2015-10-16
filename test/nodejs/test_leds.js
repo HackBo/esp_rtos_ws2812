@@ -14,6 +14,14 @@ req.end()
 
 j=0;
 setInterval(function() {
+  req   = coap.request('coap://192.168.50.1/shift')
+
+  offset=-2
+
+  req.write(offset.toString());
+
+
+/*
   leds.fill(0);
   req   = coap.request('coap://192.168.50.1/rgb')
 
@@ -32,7 +40,7 @@ setInterval(function() {
   }
   
   req.write(leds.toString('hex'));
-
+*/
   req.on('response', function(res) {
       res.pipe(process.stdout)
   })
