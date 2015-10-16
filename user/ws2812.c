@@ -17,8 +17,14 @@ static inline uint32_t _getCycleCount(void) {
 #define F_CPU CPU_CLK_FREQ
 #define CYCLES_800_T0H (F_CPU / 2500000)  // 0.4us
 #define CYCLES_800_T1H (F_CPU / 1250000)  // 0.8us
-#define CYCLES_ERROR (F_CPU / 5000000)   // 0.2us
+#define CYCLES_ERROR (F_CPU / 5000000)    // 0.2us
 #define CYCLES_800 (F_CPU / 800000)       // 1.25us per bit
+
+#define MAX_LEDS 144
+
+static int nleds = MAX_LEDS;
+static uint8_t buffer[MAX_LEDS * sizeof(rgb)];
+static rgb *rgb_buffer = (rgb *)buffer;
 
 static void ICACHE_FLASH_ATTR
 send_pixels_800(uint8_t *pixels, uint32_t numBytes, uint8_t pin) {
@@ -78,13 +84,8 @@ ICACHE_FLASH_ATTR void WS2812OutBuffer(rgb *buffer, uint16_t length) {
   taskEXIT_CRITICAL();
 }
 
-#define MAX_LEDS 144
-static uint8_t buffer[MAX_LEDS * sizeof(rgb)];
-static rgb *rgb_buffer = (rgb *)buffer;
-
 void ledControllerTask(void *pvParameters) {
   int i, j;
-  int nleds = 35;
 
   memset(rgb_buffer, 0, MAX_LEDS * sizeof(rgb));
   //  for (i = 0; i < MAX_LEDS; i++) rgb_buffer[i].b = rgb_buffer[i].g = i;
@@ -103,12 +104,12 @@ void ledControllerTask(void *pvParameters) {
 int leds_write_hex(uint8_t *bytes, int len) {
   uint8_t i;
   static unsigned char hex[3];
-  int nleds = len / 6;
+  int leds = len / 6;
 
   hex[2] = '\0';
   memset(rgb_buffer, 0, MAX_LEDS * sizeof(rgb));
 
-  for (i = 0; i < nleds; i++) {
+  for (i = 0; i < leds; i++) {
     uint8_t *p = (uint8_t *)(bytes + i * 6);
 
     memcpy(hex, p, 2);
@@ -120,6 +121,11 @@ int leds_write_hex(uint8_t *bytes, int len) {
     memcpy(hex, p + 4, 2);
     rgb_buffer[i].b = strtol(hex, NULL, 16);
   }
+}
+
+int leds_set_nleds(int n) {
+  nleds = n < MAX_LEDS ? n : MAX_LEDS;
+  return nleds;
 }
 
 void leds_init(void) {
