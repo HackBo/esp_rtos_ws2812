@@ -17,6 +17,7 @@ static inline uint32_t _getCycleCount(void) {
 #define F_CPU CPU_CLK_FREQ
 #define CYCLES_800_T0H (F_CPU / 2500000)  // 0.4us
 #define CYCLES_800_T1H (F_CPU / 1250000)  // 0.8us
+#define CYCLES_ERROR (F_CPU / 5000000)   // 0.2us
 #define CYCLES_800 (F_CPU / 800000)       // 1.25us per bit
 
 static void ICACHE_FLASH_ATTR
@@ -27,55 +28,52 @@ send_pixels_800(uint8_t *pixels, uint32_t numBytes, uint8_t pin) {
   uint32_t cyclesStart;
   uint8_t *end = pixels + numBytes;
 
-  ets_intr_lock();
+  //  ets_intr_lock();
 
-  // trigger emediately
   cyclesStart = _getCycleCount() - CYCLES_800;
   do {
     subpix = *pixels++;
     for (mask = 0x80; mask != 0; mask >>= 1) {
-      // do the checks here while we are waiting on time to pass
       uint32_t cyclesBit = ((subpix & mask)) ? CYCLES_800_T1H : CYCLES_800_T0H;
       uint32_t cyclesNext = cyclesStart;
       uint32_t delta;
+      uint32_t elapsed;
 
-      // after we have done as much work as needed for this next bit
-      // now wait for the HIGH
       do {
-        // cache and use this count so we don't incur another
-        // instruction before we turn the bit high
         cyclesStart = _getCycleCount();
-      } while ((cyclesStart - cyclesNext) < CYCLES_800);
+        elapsed = cyclesStart - cyclesNext;
 
-      // set high
+        if (elapsed >= (CYCLES_800 + CYCLES_ERROR))
+          goto end_send_pixels;
+        else if (elapsed >= CYCLES_800)
+          break;
+      } while (true);
+
       GPIO_REG_WRITE(GPIO_OUT_W1TS_ADDRESS, pinRegister);
 
-      // wait for the LOW
       do {
         cyclesNext = _getCycleCount();
-      } while ((cyclesNext - cyclesStart) < cyclesBit);
+        elapsed = cyclesNext - cyclesStart;
 
-      // set low
+        if (elapsed >= (cyclesBit + CYCLES_ERROR))
+          goto end_send_pixels;
+        else if (elapsed >= cyclesBit)
+          break;
+      } while (true);
+
       GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, pinRegister);
     }
   } while (pixels < end);
 
-  // while accurate, this isn't needed due to the delays at the
-  // top of Show() to enforce between update timing
-  // while ((_getCycleCount() - cyclesStart) < CYCLES_800);
-  ets_intr_unlock();
+end_send_pixels:
+  //  ets_intr_unlock();
+  return;
 }
 
 ICACHE_FLASH_ATTR void WS2812OutBuffer(rgb *buffer, uint16_t length) {
   taskENTER_CRITICAL();
 
-  vTaskSuspendAll();
-
-  vTaskDelay(1);
-
   send_pixels_800((uint8_t *)buffer, 3 * length, WSGPIO);
-
-  xTaskResumeAll();
 
   taskEXIT_CRITICAL();
 }
@@ -89,6 +87,7 @@ void ledControllerTask(void *pvParameters) {
   int nleds = 35;
 
   memset(rgb_buffer, 0, MAX_LEDS * sizeof(rgb));
+  //  for (i = 0; i < MAX_LEDS; i++) rgb_buffer[i].b = rgb_buffer[i].g = i;
 
   GPIO_OUTPUT_SET(GPIO_ID_PIN(WSGPIO), 0);
 
@@ -96,17 +95,8 @@ void ledControllerTask(void *pvParameters) {
 
   j = 0;
   while (true) {
-#if 0
-    memset(rgb_buffer, 0, MAX_LEDS * sizeof(rgb));
-    for (i = 0; i < MAX_LEDS; i++) rgb_buffer[i].g = i;
-
-    rgb_buffer[j].r = 255;
-
-    rgb_buffer[nleds-1-(j+(nleds*1/3))%nleds].b = 255;
-
-    j=(j+1)%nleds;
-#endif
     WS2812OutBuffer(rgb_buffer, nleds);
+    vTaskDelay(1);
   }
 }
 
