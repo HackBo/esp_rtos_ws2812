@@ -38,6 +38,11 @@ static inline rgb *swap_buffer() {
   return rgb_buffer;
 }
 
+static inline rgb *second_buffer() {
+  if (rgb_buffer == (rgb *)buffer_1) return (rgb *)buffer_2;
+  return (rgb *)buffer_1;
+}
+
 static bool ICACHE_FLASH_ATTR
 send_pixels_bit_banging(uint8_t *pixels, uint32_t numBytes, uint8_t pin) {
   const uint32_t pinRegister = 1 << pin;
@@ -146,15 +151,35 @@ int leds_set_nleds(int n) {
 }
 
 int leds_set_shift(int shift) {
+  int ol, or ;
+  if (shift == 0) return shift;
+
+  shift = shift > 0 ? shift % nleds : -((-shift) % nleds);
+
   /*
   static uint8_t buffer[MAX_LEDS * sizeof(rgb)];
   static rgb *rgb_buffer = (rgb *)buffer;
 
-  0000123000 1
+  0000123000  1
   0000012300 -2
-  0001230000
+  0001230000 -3
+  1230000000 -2
+  3000000012
   */
-  tainted = true;
+  uint8_t *org = (uint8_t *)rgb_buffer;
+  uint8_t *dest = (uint8_t *)second_buffer();
+
+  if (shift > 0) {
+    memcpy(dest, &org[nleds - shift - 1], shift);
+    memcpy(&dest[shift], org, nleds - shift);
+  } else {
+    int offset = -shift;
+    memcpy(dest, &org[offset], nleds - offset);
+    memcpy(&dest[nleds - offset - 1], org, offset);
+  }
+
+  swap_buffer();
+  return shift;
 }
 
 void leds_init(void) {
