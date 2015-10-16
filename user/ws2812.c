@@ -17,7 +17,7 @@ static inline uint32_t _getCycleCount(void) {
 #define F_CPU CPU_CLK_FREQ
 #define CYCLES_800_T0H (F_CPU / 2500000)  // 0.4us
 #define CYCLES_800_T1H (F_CPU / 1250000)  // 0.8us
-#define CYCLES_ERROR (F_CPU / 5000000)    // 0.2us
+#define CYCLES_ERROR (F_CPU / 4000000)    // 0.2us
 #define CYCLES_800 (F_CPU / 800000)       // 1.25us per bit
 
 #define MAX_LEDS 144

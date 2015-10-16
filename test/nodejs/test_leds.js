@@ -16,7 +16,7 @@ j=0;
 setInterval(function() {
   req   = coap.request('coap://192.168.50.1/shift')
 
-  offset=-2
+  offset=-1
 
   req.write(offset.toString());
 
@@ -46,7 +46,7 @@ setInterval(function() {
   })
 
   req.end()
-},  10);
+},  40);
 
 
 
