@@ -23,11 +23,23 @@ static inline uint32_t _getCycleCount(void) {
 #define MAX_LEDS 144
 
 static int nleds = MAX_LEDS;
-static uint8_t buffer[MAX_LEDS * sizeof(rgb)];
-static rgb *rgb_buffer = (rgb *)buffer;
+static uint8_t buffer_1[MAX_LEDS * sizeof(rgb)];
+static uint8_t buffer_2[MAX_LEDS * sizeof(rgb)];
+static bool tainted = false;
 
-static void ICACHE_FLASH_ATTR
-send_pixels_800(uint8_t *pixels, uint32_t numBytes, uint8_t pin) {
+static rgb *rgb_buffer = (rgb *)buffer_1;
+
+static inline rgb *swap_buffer() {
+  if (rgb_buffer == (rgb *)buffer_1)
+    rgb_buffer = (rgb *)buffer_2;
+  else
+    rgb_buffer = (rgb *)buffer_1;
+  tainted = true;
+  return rgb_buffer;
+}
+
+static bool ICACHE_FLASH_ATTR
+send_pixels_bit_banging(uint8_t *pixels, uint32_t numBytes, uint8_t pin) {
   const uint32_t pinRegister = 1 << pin;
   uint8_t mask;
   uint8_t subpix;
@@ -71,21 +83,25 @@ send_pixels_800(uint8_t *pixels, uint32_t numBytes, uint8_t pin) {
     }
   } while (pixels < end);
 
+  return true;
+
 end_send_pixels:
   //  ets_intr_unlock();
-  return;
+  return false;
 }
 
-ICACHE_FLASH_ATTR void WS2812OutBuffer(rgb *buffer, uint16_t length) {
+ICACHE_FLASH_ATTR bool WS2812OutBuffer(rgb *buffer, uint16_t length) {
+  bool res;
   taskENTER_CRITICAL();
 
-  send_pixels_800((uint8_t *)buffer, 3 * length, WSGPIO);
+  res = send_pixels_bit_banging((uint8_t *)buffer, 3 * length, WSGPIO);
 
   taskEXIT_CRITICAL();
+  return res;
 }
 
 void ledControllerTask(void *pvParameters) {
-  int i, j;
+  int i;
 
   memset(rgb_buffer, 0, MAX_LEDS * sizeof(rgb));
   //  for (i = 0; i < MAX_LEDS; i++) rgb_buffer[i].b = rgb_buffer[i].g = i;
@@ -94,9 +110,8 @@ void ledControllerTask(void *pvParameters) {
 
   GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, 1 << WSGPIO);
 
-  j = 0;
   while (true) {
-    WS2812OutBuffer(rgb_buffer, nleds);
+    if (tainted) tainted = !WS2812OutBuffer(rgb_buffer, nleds);
     vTaskDelay(1);
   }
 }
@@ -121,11 +136,25 @@ int leds_write_hex(uint8_t *bytes, int len) {
     memcpy(hex, p + 4, 2);
     rgb_buffer[i].b = strtol(hex, NULL, 16);
   }
+  tainted = true;
 }
 
 int leds_set_nleds(int n) {
   nleds = n < MAX_LEDS ? n : MAX_LEDS;
+  tainted = true;
   return nleds;
+}
+
+int leds_set_shift(int shift) {
+  /*
+  static uint8_t buffer[MAX_LEDS * sizeof(rgb)];
+  static rgb *rgb_buffer = (rgb *)buffer;
+
+  0000123000 1
+  0000012300 -2
+  0001230000
+  */
+  tainted = true;
 }
 
 void leds_init(void) {

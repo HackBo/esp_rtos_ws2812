@@ -1,6 +1,6 @@
 const coap  = require('coap');
 
-nleds=16
+nleds=60
 leds=new Buffer(nleds*3);
 
 req   = coap.request('coap://192.168.50.1/nleds')
@@ -20,8 +20,15 @@ setInterval(function() {
   j=(j+1)%nleds;
   for(var i=0;i<nleds;i++)
   {
+    leds[i*3]=i;
+    leds[i*3+2]=nleds-i;    
+
     if (i==j)
+    {
+      leds[i*3+0]=255;
       leds[i*3+1]=255;  
+      leds[i*3+2]=255;    
+    }
   }
   
   req.write(leds.toString('hex'));
@@ -31,7 +38,7 @@ setInterval(function() {
   })
 
   req.end()
-},  100);
+},  10);
 
 
 
