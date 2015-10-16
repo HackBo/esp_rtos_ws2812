@@ -109,7 +109,7 @@ void ledControllerTask(void *pvParameters) {
   int i;
 
   memset(rgb_buffer, 0, MAX_LEDS * sizeof(rgb));
-  //  for (i = 0; i < MAX_LEDS; i++) rgb_buffer[i].b = rgb_buffer[i].g = i;
+  // for (i = 0; i < MAX_LEDS; i++) rgb_buffer[i].b = rgb_buffer[i].g = i;
 
   GPIO_OUTPUT_SET(GPIO_ID_PIN(WSGPIO), 0);
 
@@ -121,27 +121,30 @@ void ledControllerTask(void *pvParameters) {
   }
 }
 
-int leds_write_hex(uint8_t *bytes, int len) {
+void leds_write_hex(uint8_t *bytes, int len) {
   uint8_t i;
   static unsigned char hex[3];
   int leds = len / 6;
 
   hex[2] = '\0';
-  memset(rgb_buffer, 0, MAX_LEDS * sizeof(rgb));
+
+  rgb *buff = second_buffer();
+
+  memset(buff, 0, MAX_LEDS * sizeof(rgb));
 
   for (i = 0; i < leds; i++) {
     uint8_t *p = (uint8_t *)(bytes + i * 6);
 
     memcpy(hex, p, 2);
-    rgb_buffer[i].r = strtol(hex, NULL, 16);
+    buff[i].r = strtol(hex, NULL, 16);
 
     memcpy(hex, p + 2, 2);
-    rgb_buffer[i].g = strtol(hex, NULL, 16);
+    buff[i].g = strtol(hex, NULL, 16);
 
     memcpy(hex, p + 4, 2);
-    rgb_buffer[i].b = strtol(hex, NULL, 16);
+    buff[i].b = strtol(hex, NULL, 16);
   }
-  tainted = true;
+  swap_buffer();
 }
 
 int leds_set_nleds(int n) {
