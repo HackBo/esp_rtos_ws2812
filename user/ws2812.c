@@ -17,7 +17,7 @@ static inline uint32_t _getCycleCount(void) {
 #define F_CPU CPU_CLK_FREQ
 #define CYCLES_800_T0H (F_CPU / 2500000)  // 0.4us
 #define CYCLES_800_T1H (F_CPU / 1250000)  // 0.8us
-#define CYCLES_ERROR (F_CPU / 5000000)    //
+#define CYCLES_ERROR (F_CPU / 5000000)    // 0.2us
 #define CYCLES_800 (F_CPU / 800000)       // 1.25us per bit
 
 #define MAX_LEDS 144
@@ -45,22 +45,17 @@ static inline rgb *second_buffer() {
 
 static bool ICACHE_FLASH_ATTR
 send_pixels_bit_banging(uint8_t *pixels, uint32_t numBytes, uint8_t pin) {
-  uint32_t i;
   const uint32_t pinRegister = 1 << pin;
   uint8_t mask;
   uint8_t subpix;
   uint32_t cyclesStart;
-  uint32_t cyclesBufferStart;
-  uint32_t cyclesBufferEnd;
   uint8_t *end = pixels + numBytes;
 
-  ets_intr_lock();
+  //  ets_intr_lock();
 
-  cyclesBufferStart = _getCycleCount();
-  cyclesBufferEnd = cyclesBufferStart;
   cyclesStart = _getCycleCount() - CYCLES_800;
-  for (i = 0, subpix = pixels[i]; i < numBytes; i++) {
-    cyclesBufferEnd += CYCLES_800;
+  do {
+    subpix = *pixels++;
     for (mask = 0x80; mask != 0; mask >>= 1) {
       uint32_t cyclesBit = ((subpix & mask)) ? CYCLES_800_T1H : CYCLES_800_T0H;
       uint32_t cyclesNext = cyclesStart;
@@ -91,14 +86,12 @@ send_pixels_bit_banging(uint8_t *pixels, uint32_t numBytes, uint8_t pin) {
 
       GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, pinRegister);
     }
-   // if ((cyclesBufferEnd + CYCLES_ERROR) > _getCycleCount())
-   //   goto end_send_pixels;
-  }
+  } while (pixels < end);
 
   return true;
 
 end_send_pixels:
-  ets_intr_unlock();
+  //  ets_intr_unlock();
   return false;
 }
 
@@ -116,7 +109,7 @@ void ledControllerTask(void *pvParameters) {
   int i;
 
   memset(rgb_buffer, 0, MAX_LEDS * sizeof(rgb));
-  // for (i = 0; i < MAX_LEDS; i++) rgb_buffer[i].b = rgb_buffer[i].g = i;
+  //for (i = 0; i < MAX_LEDS; i++) rgb_buffer[i].b = rgb_buffer[i].g = i;
 
   GPIO_OUTPUT_SET(GPIO_ID_PIN(WSGPIO), 0);
 
@@ -195,3 +188,4 @@ int leds_set_shift(int shift) {
 void leds_init(void) {
   xTaskCreate(ledControllerTask, "ledControllerTask", 512, NULL, 1000, NULL);
 }
+
