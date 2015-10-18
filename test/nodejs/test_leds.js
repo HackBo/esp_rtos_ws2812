@@ -1,6 +1,6 @@
 const coap  = require('coap');
 
-nleds=36
+nleds=61
 leds=new Buffer(nleds*3);
 
 var c = new Array();

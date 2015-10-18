@@ -14,6 +14,20 @@ static inline uint32_t _getCycleCount(void) {
   return ccount;
 }
 
+// Read Set Interrupt Level
+#define RSIL(r) __asm__ __volatile__("rsil %0,15 ; esync" : "=a"(r))
+
+// Write Register Processor State
+#define WSR_PS(w) __asm__ __volatile__("wsr %0,ps ; esync" ::"a"(w) : "memory")
+
+static inline uint32_t esp8266_enter_critical() {
+  uint32_t state;
+  RSIL(state);
+  return state;
+}
+
+static inline void esp8266_leave_critical(uint32_t state) { WSR_PS(state); }
+
 #define F_CPU CPU_CLK_FREQ
 #define CYCLES_800_T0H (F_CPU / 2500000)  // 0.4us
 #define CYCLES_800_T1H (F_CPU / 1250000)  // 0.8us
@@ -50,8 +64,10 @@ send_pixels_bit_banging(uint8_t *pixels, uint32_t numBytes, uint8_t pin) {
   uint8_t subpix;
   uint32_t cyclesStart;
   uint8_t *end = pixels + numBytes;
+  uint32_t state;
 
   //  ets_intr_lock();
+  state = esp8266_enter_critical();
 
   cyclesStart = _getCycleCount() - CYCLES_800;
   do {
@@ -87,11 +103,12 @@ send_pixels_bit_banging(uint8_t *pixels, uint32_t numBytes, uint8_t pin) {
       GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, pinRegister);
     }
   } while (pixels < end);
-
+  esp8266_leave_critical(state);
   return true;
 
 end_send_pixels:
   //  ets_intr_unlock();
+  esp8266_leave_critical(state);
   return false;
 }
 
@@ -109,7 +126,7 @@ void ledControllerTask(void *pvParameters) {
   int i;
 
   memset(rgb_buffer, 0, MAX_LEDS * sizeof(rgb));
-  //for (i = 0; i < MAX_LEDS; i++) rgb_buffer[i].b = rgb_buffer[i].g = i;
+  // for (i = 0; i < MAX_LEDS; i++) rgb_buffer[i].b = rgb_buffer[i].g = i;
 
   GPIO_OUTPUT_SET(GPIO_ID_PIN(WSGPIO), 0);
 
@@ -188,4 +205,3 @@ int leds_set_shift(int shift) {
 void leds_init(void) {
   xTaskCreate(ledControllerTask, "ledControllerTask", 512, NULL, 1000, NULL);
 }
-
