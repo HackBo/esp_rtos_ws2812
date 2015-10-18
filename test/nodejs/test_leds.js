@@ -3,7 +3,6 @@ const coap  = require('coap');
 nleds=36
 leds=new Buffer(nleds*3);
 
-
 var c = new Array();
 
 c[0]  = [0,0xFF,0xA2,0x00];
@@ -75,6 +74,7 @@ setInterval(function() {
 
   req.end()
 },  20);
+
 
 
 
