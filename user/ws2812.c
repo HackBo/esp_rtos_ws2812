@@ -66,7 +66,6 @@ send_pixels_bit_banging(uint8_t *pixels, uint32_t numBytes, uint8_t pin) {
   uint8_t *end = pixels + numBytes;
   uint32_t state;
 
-  //  ets_intr_lock();
   state = esp8266_enter_critical();
 
   cyclesStart = _getCycleCount() - CYCLES_800;
@@ -107,7 +106,6 @@ send_pixels_bit_banging(uint8_t *pixels, uint32_t numBytes, uint8_t pin) {
   return true;
 
 end_send_pixels:
-  //  ets_intr_unlock();
   esp8266_leave_critical(state);
   return false;
 }
@@ -117,6 +115,8 @@ ICACHE_FLASH_ATTR bool WS2812OutBuffer(rgb *buffer, uint16_t length) {
   taskENTER_CRITICAL();
 
   res = send_pixels_bit_banging((uint8_t *)buffer, 3 * length, WSGPIO);
+
+  GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, 1 << WSGPIO);
 
   taskEXIT_CRITICAL();
   return res;
@@ -200,6 +200,25 @@ int leds_set_shift(int shift) {
 
   swap_buffer();
   return shift;
+}
+
+int leds_fill(uint32_t fill) {
+  int i;
+  rgb *dest = second_buffer();
+
+  uint8_t r, g, b;
+  r = fill & 0xFF;
+  g = (fill >> 8) & 0xFF;
+  b = (fill >> 16) & 0xFF;
+
+  for (i = 0; i < nleds; i++) {
+    dest[i].r = r;
+    dest[i].g = g;
+    dest[i].b = b;
+  }
+
+  swap_buffer();
+  return nleds;
 }
 
 void leds_init(void) {
