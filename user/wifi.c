@@ -8,8 +8,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#define WIFI_APSSID "LEDS"
-#define WIFI_APPASSWORD "12345678"
+#define WIFI_APSSID "LEDS\0"
+#define WIFI_APPASSWORD "12345678\0"
 #define PLATFORM_DEBUG true
 
 static char macaddr[6];
@@ -91,12 +91,12 @@ void wifi_softap(void *pvParameters) {
   wifi_get_macaddr(SOFTAP_IF, macaddr);
   wifi_softap_get_config(&apConfig);
   memset(apConfig.ssid, 0, sizeof(apConfig.ssid));
-  sprintf(ssid, "%s", WIFI_APSSID);
+  sprintf(ssid, "%s\0", WIFI_APSSID);
   memcpy(apConfig.ssid, ssid, strlen(ssid));
   wifi_set_event_handler_cb(wifi_event_cb);
   {
     memset(apConfig.password, 0, sizeof(apConfig.password));
-    sprintf(password, "%s", WIFI_APPASSWORD);
+    sprintf(password, "%s\0", WIFI_APPASSWORD);
     memcpy(apConfig.password, password, strlen(password));
     apConfig.authmode = AUTH_WPA_WPA2_PSK;
     apConfig.channel = 7;

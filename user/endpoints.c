@@ -14,6 +14,8 @@ static const coap_endpoint_path_t path_ping = {1, {"ping"}};
 static const coap_endpoint_path_t path_rgb = {1, {"rgb"}};
 static const coap_endpoint_path_t path_nleds = {1, {"nleds"}};
 static const coap_endpoint_path_t path_shift = {1, {"shift"}};
+static const coap_endpoint_path_t path_fill = {1, {"fill"}};
+static const coap_endpoint_path_t path_clear = {1, {"clear"}};
 
 static ICACHE_FLASH_ATTR int handle_get_ping(coap_rw_buffer_t *scratch,
                                              const coap_packet_t *inpkt,
@@ -80,11 +82,47 @@ static ICACHE_FLASH_ATTR int handle_set_shift(coap_rw_buffer_t *scratch,
                             COAP_CONTENTTYPE_TEXT_PLAIN);
 }
 
+static ICACHE_FLASH_ATTR int handle_set_fill(coap_rw_buffer_t *scratch,
+                                             const coap_packet_t *inpkt,
+                                             coap_packet_t *outpkt,
+                                             uint8_t id_hi, uint8_t id_lo) {
+  static uint8_t buffer[32];
+
+  int hex = atoi(inpkt->payload.p);
+
+  leds_fill(hex);
+
+  sprintf((char *)buffer, "rgb::fill=0x%X", hex);
+
+  return coap_make_response(scratch, outpkt, (const uint8_t *)buffer,
+                            strlen((const char *)buffer), id_hi, id_lo,
+                            &inpkt->tok, COAP_RSPCODE_CONTENT,
+                            COAP_CONTENTTYPE_TEXT_PLAIN);
+}
+
+static ICACHE_FLASH_ATTR int handle_set_clear(coap_rw_buffer_t *scratch,
+                                              const coap_packet_t *inpkt,
+                                              coap_packet_t *outpkt,
+                                              uint8_t id_hi, uint8_t id_lo) {
+  static uint8_t buffer[32];
+
+  leds_fill(0);
+
+  sprintf((char *)buffer, "rgb::clear");
+
+  return coap_make_response(scratch, outpkt, (const uint8_t *)buffer,
+                            strlen((const char *)buffer), id_hi, id_lo,
+                            &inpkt->tok, COAP_RSPCODE_CONTENT,
+                            COAP_CONTENTTYPE_TEXT_PLAIN);
+}
+
 const coap_endpoint_t endpoints[] = {
     {COAP_METHOD_GET, handle_get_ping, &path_ping, "ct=40"},
     {COAP_METHOD_GET, handle_set_rgb, &path_rgb, "ct=40"},
     {COAP_METHOD_GET, handle_set_nleds, &path_nleds, "ct=40"},
     {COAP_METHOD_GET, handle_set_shift, &path_shift, "ct=40"},
+    {COAP_METHOD_GET, handle_set_fill, &path_fill, "ct=40"},
+    {COAP_METHOD_GET, handle_set_clear, &path_clear, "ct=40"},
     {(coap_method_t)0, NULL, NULL, NULL}};
 
 void ICACHE_FLASH_ATTR build_rsp(void) {
